@@ -1,26 +1,27 @@
 #!/usr/bin/env tsx
 /**
  * Setup script to generate required environment variable secrets
- * 
+ *
  * Usage:
  *   pnpm tsx scripts/setup-env.ts
- * 
+ *
  * This will generate:
  *   - BETTER_AUTH_SECRET (base64 encoded, 32 bytes)
  *   - INTEGRATION_ENCRYPTION_KEY (hex encoded, 32 bytes = 64 hex characters)
  */
 
 import { execSync } from "child_process";
-import { writeFileSync, existsSync } from "fs";
+import { existsSync, writeFileSync } from "fs";
 import { join } from "path";
 
 function generateSecret(length: number, encoding: "base64" | "hex"): string {
   const bytes = length;
   if (encoding === "base64") {
-    return execSync(`openssl rand -base64 ${bytes}`, { encoding: "utf-8" }).trim();
-  } else {
-    return execSync(`openssl rand -hex ${bytes}`, { encoding: "utf-8" }).trim();
+    return execSync(`openssl rand -base64 ${bytes}`, {
+      encoding: "utf-8",
+    }).trim();
   }
+  return execSync(`openssl rand -hex ${bytes}`, { encoding: "utf-8" }).trim();
 }
 
 function main() {
@@ -91,4 +92,3 @@ AI_GATEWAY_API_KEY=your-openai-api-key-here
 }
 
 main();
-
