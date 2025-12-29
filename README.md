@@ -64,27 +64,83 @@ When using the [one-click deploy button](#option-1-one-click-deploy), Neon is au
 
 If you're deploying with Vercel CLI or need to set up Neon manually:
 
-1. **Create a Neon account** (if you don't have one):
-   - Go to [neon.tech](https://neon.tech)
-   - Sign up for a free account
+**Step 1: Create Neon Account and Database**
 
-2. **Create a new database**:
-   - In Neon dashboard, click "Create Project"
-   - Choose a project name and region
-   - Copy the connection string (it looks like: `postgresql://user:password@host/database`)
+1. Go to [neon.tech](https://neon.tech) and sign up (or log in)
+2. Click "Create Project" or "New Project"
+3. Choose a project name (e.g., "workflow-builder")
+4. Select a region (choose closest to your Vercel deployment region)
+5. Click "Create Project"
+6. Copy your connection string - it looks like: `postgresql://user:password@host.neon.tech/database?sslmode=require`
 
-3. **Add Neon integration to Vercel** (recommended):
-   - Go to your Vercel project dashboard
-   - Navigate to **Settings** → **Integrations**
-   - Find **Neon** and click "Add Integration"
-   - Select your Neon project
-   - This automatically sets `DATABASE_URL` for all environments
+**Step 2: Add Neon to Vercel (Recommended)**
 
-4. **Or set DATABASE_URL manually**:
-   ```bash
-   vercel env add DATABASE_URL production
-   # Paste your Neon connection string when prompted
-   ```
+This automatically sets `DATABASE_URL` for you:
+
+**Via Vercel Dashboard:**
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** → **Integrations**
+3. Find **Neon** in the list
+4. Click **"Add Integration"** or **"Browse"**
+5. Authorize the integration
+6. Select your Neon project
+7. Choose which environments to apply to (Production, Preview, Development)
+8. Click **"Save"**
+
+The `DATABASE_URL` will be automatically set for all selected environments!
+
+**Via Vercel CLI:**
+```bash
+# Link your project if not already linked
+vercel link
+
+# Add Neon integration (this will open browser for authorization)
+vercel integration add neon
+```
+
+**Step 3: Manual Setup (If Not Using Integration)**
+
+If you prefer to set `DATABASE_URL` manually:
+
+```bash
+# Link project if not already linked
+vercel link
+
+# Add DATABASE_URL environment variable
+vercel env add DATABASE_URL production
+# When prompted, paste your Neon connection string
+# It should look like: postgresql://user:password@host.neon.tech/database?sslmode=require
+
+# Also add for preview and development environments if needed
+vercel env add DATABASE_URL preview
+vercel env add DATABASE_URL development
+```
+
+**Step 4: Verify Setup**
+
+Check that `DATABASE_URL` is set:
+
+```bash
+# List environment variables
+vercel env ls
+
+# Or pull them locally to verify
+vercel env pull .env.local
+```
+
+You should see `DATABASE_URL` in the list.
+
+**Troubleshooting Neon Setup**
+
+- **Connection String Format**: Must include `?sslmode=require` at the end (Neon requires SSL)
+- **Verify DATABASE_URL**: Run `vercel env ls | grep DATABASE_URL`
+- **Check Neon Dashboard**: Ensure your project is active and not paused
+- **Update Connection String**: 
+  ```bash
+  vercel env rm DATABASE_URL production
+  vercel env add DATABASE_URL production
+  # Paste new connection string
+  ```
 
 #### Alternative: Using Supabase or Other PostgreSQL Providers
 
