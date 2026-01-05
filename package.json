@@ -18,6 +18,7 @@
     "discover-plugins": "tsx scripts/discover-plugins.ts",
     "create-plugin": "tsx scripts/create-plugin.ts",
     "setup-env": "tsx scripts/setup-env.ts",
+    "db:clear": "tsx scripts/clear-db.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

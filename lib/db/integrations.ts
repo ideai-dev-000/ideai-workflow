@@ -19,15 +19,25 @@ function getEncryptionKey(): Buffer {
   const keyHex = process.env[ENCRYPTION_KEY_ENV];
 
   if (!keyHex) {
-    throw new Error(
+    const error = new Error(
       `${ENCRYPTION_KEY_ENV} environment variable is required for encrypting integration credentials`
     );
+    console.error(`❌ ${ENCRYPTION_KEY_ENV} is not set!`);
+    console.error(
+      "This environment variable must be set in your production environment (Vercel)."
+    );
+    console.error("Generate a key with: openssl rand -hex 32");
+    throw error;
   }
 
   if (keyHex.length !== 64) {
-    throw new Error(
-      `${ENCRYPTION_KEY_ENV} must be a 64-character hex string (32 bytes)`
+    const error = new Error(
+      `${ENCRYPTION_KEY_ENV} must be a 64-character hex string (32 bytes), but got ${keyHex.length} characters`
     );
+    console.error(
+      `❌ ${ENCRYPTION_KEY_ENV} has invalid length: ${keyHex.length} (expected 64)`
+    );
+    throw error;
   }
 
   return Buffer.from(keyHex, "hex");
@@ -186,22 +196,57 @@ export async function createIntegration(
   type: IntegrationType,
   config: IntegrationConfig
 ): Promise<DecryptedIntegration> {
-  const encryptedConfig = encryptConfig(config);
+  let encryptedConfig: string;
+  try {
+    encryptedConfig = encryptConfig(config);
+    console.log(
+      `[createIntegration] Successfully encrypted config for user ${userId}, type ${type}`
+    );
+  } catch (encryptError) {
+    console.error(
+      `[createIntegration] Encryption failed for user ${userId}, type ${type}:`,
+      encryptError
+    );
+    throw new Error(
+      `Failed to encrypt integration config: ${encryptError instanceof Error ? encryptError.message : "Unknown encryption error"}`
+    );
+  }
 
-  const [result] = await db
-    .insert(integrations)
-    .values({
-      userId,
-      name,
-      type,
-      config: encryptedConfig,
-    })
-    .returning();
+  try {
+    const [result] = await db
+      .insert(integrations)
+      .values({
+        userId,
+        name,
+        type,
+        config: encryptedConfig,
+      })
+      .returning();
 
-  return {
-    ...result,
-    config,
-  };
+    console.log(
+      `[createIntegration] Successfully saved integration ${result.id} to database`
+    );
+
+    return {
+      ...result,
+      config,
+    };
+  } catch (dbError) {
+    console.error("[createIntegration] Database error:", dbError);
+    if (dbError instanceof Error) {
+      // Check for common database errors
+      if (dbError.message.includes("violates foreign key constraint")) {
+        throw new Error("User not found in database. Please sign in again.");
+      }
+      if (
+        dbError.message.includes("connection") ||
+        dbError.message.includes("ECONNREFUSED")
+      ) {
+        throw new Error("Database connection failed. Please try again.");
+      }
+    }
+    throw dbError;
+  }
 }
 
 /**

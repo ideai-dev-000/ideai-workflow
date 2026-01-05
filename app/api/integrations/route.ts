@@ -101,12 +101,19 @@ export async function POST(request: Request) {
       );
     }
 
+    // Log attempt to create integration (without sensitive data)
+    console.log(
+      `[Integration Create] User: ${session.user.id}, Type: ${body.type}, Name: ${body.name || "unnamed"}`
+    );
+
     const integration = await createIntegration(
       session.user.id,
       body.name || "",
       body.type,
       body.config
     );
+
+    console.log(`[Integration Create] Success: ${integration.id}`);
 
     const response: CreateIntegrationResponse = {
       id: integration.id,
@@ -119,10 +126,29 @@ export async function POST(request: Request) {
     return NextResponse.json(response);
   } catch (error) {
     console.error("Failed to create integration:", error);
+
+    // Check for encryption key errors specifically
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    if (errorMessage.includes("INTEGRATION_ENCRYPTION_KEY")) {
+      console.error(
+        "❌ INTEGRATION_ENCRYPTION_KEY is missing or invalid in production!"
+      );
+      console.error("This is required for encrypting integration credentials.");
+      return NextResponse.json(
+        {
+          error: "Server configuration error: encryption key missing",
+          details:
+            "INTEGRATION_ENCRYPTION_KEY environment variable is required. Please contact support.",
+        },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: "Failed to create integration",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: errorMessage,
       },
       { status: 500 }
     );
